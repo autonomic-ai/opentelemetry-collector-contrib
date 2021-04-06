@@ -16,6 +16,7 @@ package honeycombexporter
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/honeycombio/libhoney-go"
@@ -138,11 +139,11 @@ func (e *honeycombExporter) pushTraceData(ctx context.Context, td pdata.Traces) 
 				}
 
 				if attrs := spanAttributesToMap(span.Attributes()); attrs != nil {
+					e.addSampleRate(ev, attrs)
+
 					for k, v := range attrs {
 						ev.AddField(k, v)
 					}
-
-					e.addSampleRate(ev, attrs)
 				}
 
 				ev.Timestamp = timestampToTime(span.StartTime())
@@ -210,10 +211,12 @@ func (e *honeycombExporter) sendSpanLinks(span pdata.Span) {
 			AnnotationType: "link",
 		})
 		attrs := spanAttributesToMap(l.Attributes())
+
+		e.addSampleRate(ev, attrs)
+
 		for k, v := range attrs {
 			ev.AddField(k, v)
 		}
-		e.addSampleRate(ev, attrs)
 
 		if err := ev.SendPresampled(); err != nil {
 			e.onError(err)
@@ -239,10 +242,11 @@ func (e *honeycombExporter) sendMessageEvents(span pdata.Span, resourceAttrs map
 			ev.AddField(k, v)
 		}
 
+		e.addSampleRate(ev, attrs)
+
 		for k, v := range attrs {
 			ev.AddField(k, v)
 		}
-		e.addSampleRate(ev, attrs)
 
 		ev.Timestamp = ts
 		ev.Add(spanEvent{
@@ -293,6 +297,15 @@ func (e *honeycombExporter) addSampleRate(event *libhoney.Event, attrs map[strin
 			switch v := value.(type) {
 			case int64:
 				event.SampleRate = uint(v)
+			case string:
+				sampleRate, err := strconv.Atoi(v)
+				if err != nil {
+					delete(attrs, e.sampleRateAttribute)
+					return
+				} else {
+					event.SampleRate = uint(sampleRate)
+					attrs[e.sampleRateAttribute] = sampleRate
+				}
 			default:
 				return
 			}

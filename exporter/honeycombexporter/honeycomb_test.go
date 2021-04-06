@@ -423,7 +423,23 @@ func TestSampleRateAttribute(t *testing.T) {
 					AttributeMap: map[string]*tracepb.AttributeValue{
 						"hc.sample.rate": {
 							Value: &tracepb.AttributeValue_StringValue{
-								StringValue: &tracepb.TruncatableString{Value: "wrong_type"},
+								StringValue: &tracepb.TruncatableString{Value: "12"},
+							},
+						},
+					},
+				},
+			},
+			{
+				TraceId:                 []byte{0x01},
+				SpanId:                  []byte{0x02},
+				Name:                    &tracepb.TruncatableString{Value: "root"},
+				Kind:                    tracepb.Span_SERVER,
+				SameProcessAsParentSpan: &wrapperspb.BoolValue{Value: true},
+				Attributes: &tracepb.Span_Attributes{
+					AttributeMap: map[string]*tracepb.AttributeValue{
+						"hc.sample.rate": {
+							Value: &tracepb.AttributeValue_StringValue{
+								StringValue: &tracepb.TruncatableString{Value: "cannot_parse"},
 							},
 						},
 					},
@@ -468,7 +484,19 @@ func TestSampleRateAttribute(t *testing.T) {
 		{
 			Data: map[string]interface{}{
 				"duration_ms":                            float64(0),
-				"hc.sample.rate":                         "wrong_type",
+				"hc.sample.rate":                         float64(12),
+				"name":                                   "root",
+				"span_kind":                              "server",
+				"status.code":                            float64(0), // Default status code
+				"status.message":                         "STATUS_CODE_UNSET",
+				"trace.span_id":                          "0200000000000000",
+				"trace.trace_id":                         "01000000000000000000000000000000",
+				"opencensus.same_process_as_parent_span": true,
+			},
+		},
+		{
+			Data: map[string]interface{}{
+				"duration_ms":                            float64(0),
 				"name":                                   "root",
 				"span_kind":                              "server",
 				"status.code":                            float64(0), // Default status code
