@@ -1,0 +1,42 @@
+receivers:
+  nop:
+
+processors:
+  redaction:
+    # Allowlist for span attribute keys
+    allowed_keys:
+      - description
+      - group
+      - id
+      - name
+    # Blocklist for span attribute values
+    blocked_values:
+      - "4[0-9]{12}(?:[0-9]{3})?" ## Visa credit card number for testing purpose
+      - "(5[1-5][0-9]{14})"
+    # Summarize the redactions but do not do the redactions
+    dry_run: true
+    limits:
+      # Max length for span attribute values
+      max_value_length: 8
+      # Don't apply the length limit to these attributes
+      limit_exceptions:
+       - exception_statement
+    # Span attribute keys to use as metric dimensions
+    metric_tags:
+      - group
+      - name
+    # Verbosity: debug vs info vs silent
+    summary: debug
+
+exporters:
+  nop:
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - nop
+      processors:
+        - redaction
+      exporters:
+        - nop
